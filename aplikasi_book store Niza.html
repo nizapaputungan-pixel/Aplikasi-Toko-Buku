@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PustakaNusa — Live Preview Aplikasi BookStore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .book-spine {
+            box-shadow: inset 6px 0 12px rgba(0,0,0,0.28), 0 10px 20px -5px rgba(0,0,0,0.15);
+        }
+        .fade-in {
+            animation: fadeIn 0.25s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-pink-50/40 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- TOP STATUS BAR -->
+    <div class="bg-rose-950 text-pink-200 text-xs py-2 px-4 border-b border-rose-900">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="inline-block w-2 h-2 rounded-full bg-pink-400 animate-pulse"></span>
+                <span>Arsitektur: <strong class="text-white">HTML5, Tailwind CSS, PHP 8, MySQL</strong></span>
+                <span class="hidden sm:inline text-rose-700">|</span>
+                <span class="hidden sm:inline text-pink-300">Live Interactive Preview (Pink Theme)</span>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <span>1-Klik Login Cepat:</span>
+                <button onclick="quickLogin('admin@bookstore.id')" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded font-semibold transition cursor-pointer">
+                    <i class="fa-solid fa-shield-halved mr-1"></i>Masuk Admin
+                </button>
+                <button onclick="quickLogin('Aprilia@gmail.com')" class="bg-pink-500/25 hover:bg-pink-500/35 text-pink-200 border border-pink-400/40 px-2 py-0.5 rounded font-semibold transition cursor-pointer">
+                    <i class="fa-solid fa-user mr-1"></i>Masuk User (Aprilia)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
+    <nav class="bg-white/95 backdrop-blur-md sticky top-0 z-40 border-b border-pink-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <!-- Brand -->
+                <button onclick="navigate('home')" class="flex items-center gap-2.5 group text-left cursor-pointer">
+                    <div class="w-10 h-10 rounded-xl bg-pink-600 text-white flex items-center justify-center shadow-md shadow-pink-200 group-hover:bg-pink-700 transition">
+                        <i class="fa-solid fa-book-open text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="font-extrabold text-xl tracking-tight text-slate-900">Toko Buku<span class="text-pink-600">Caa</span></span>
+                        <span class="block text-[10px] font-semibold uppercase tracking-widest text-pink-400 -mt-1">Online BookStore</span>
+                    </div>
+                </button>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center gap-1" id="desktopNav"></div>
+
+                <!-- Right Controls -->
+                <div class="flex items-center gap-3" id="rightNav"></div>
+            </div>
+
+            <!-- Mobile Menu -->
+            <div class="flex md:hidden overflow-x-auto gap-2 py-2 border-t border-pink-100 text-xs font-semibold" id="mobileNav"></div>
+        </div>
+    </nav>
+
+    <!-- FLASH TOAST -->
+    <div id="toastContainer" class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 mt-4 hidden"></div>
+
+    <!-- MAIN CONTENT -->
+    <main id="appRoot" class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 fade-in"></main>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-pink-100 py-8 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+            <div class="font-semibold text-slate-700">
+                &copy; 2026 Toko Buku Caa BookStore — Implementasi HTML, CSS, PHP & MySQL.
+            </div>
+            <div class="flex gap-4">
+                <button onclick="navigate('home')" class="hover:text-pink-600 cursor-pointer">Katalog</button>
+                <button onclick="navigate('about')" class="hover:text-pink-600 cursor-pointer">About Us</button>
+                <button onclick="navigate('contact')" class="hover:text-pink-600 cursor-pointer">Contact Admin</button>
+                <button onclick="navigate('sql_schema')" class="hover:text-pink-600 font-semibold text-rose-700 cursor-pointer">Database SQL</button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Store State
+        const state = {
+            currentPage: 'home',
+            currentUser: {
+                id: 1,
+                nama_lengkap: 'Administrator Utama',
+                email: 'admin@bookstore.id',
+                role: 'admin',
+                alamat: 'Jl. Jend. Sudirman No. 1, Kotamobagu'
+            },
+            searchQuery: '',
+            filterCategory: '',
+            editingBookId: null,
+            editingCategoryId: null,
+            users: [
+                { id: 1, nama_lengkap: 'Administrator Utama', email: 'admin@bookstore.id', role: 'admin', alamat: 'Jl. Jend. Sudirman No. 1, Kotamobagu', created_at: '2026-01-10 08:00:00' },
+                { id: 2, nama_lengkap: 'Aprilia Putri', email: 'Aprilia@gmail.com', role: 'user', alamat: 'Jl. Ahmad Yani No. 45, Palu', created_at: '2026-02-14 10:30:00' },
+                { id: 3, nama_lengkap: 'Siti Aminah', email: 'siti@yahoo.com', role: 'user', alamat: 'Jl. Sam Ratulangi No. 12, Palu', created_at: '2026-03-05 14:15:00' }
+            ],
+            categories: [
+                { id: 1, nama_kategori: 'Pemrograman & IT', deskripsi: 'Buku pengembangan perangkat lunak, web, dan jaringan' },
+                { id: 2, nama_kategori: 'Fiksi & Sastra', deskripsi: 'Novel, cerpen, dan karya sastra populer' },
+                { id: 3, nama_kategori: 'Bisnis & Ekonomi', deskripsi: 'Manajemen keuangan, kewirausahaan, dan investasi' },
+                { id: 4, nama_kategori: 'Sains & Teknologi', deskripsi: 'Pengetahuan alam, fisika, dan inovasi masa depan' }
+            ],
+            books: [
+                { id: 1, category_id: 1, judul: 'Mastering PHP 8 & MySQL Modern', penulis: 'Andi Pratama', penerbit: 'Informatika Nusantara', tahun_terbit: 2025, harga: 145000, stok: 24, deskripsi: 'Panduan lengkap membangun aplikasi web dinamis dari nol hingga mahir dengan arsitektur bersih dan keamanan PDO.', warna: 'from-pink-600 to-rose-800' },
+                { id: 2, category_id: 2, judul: 'Jejak Langkah di Timur Khatulistiwa', penulis: 'Rina Kartika', penerbit: 'Pustaka Senja', tahun_terbit: 2024, harga: 98000, stok: 15, deskripsi: 'Kisah inspiratif perjalanan menyusuri keindahan alam dan budaya Sulawesi Tengah yang penuh makna kehidupan.', warna: 'from-fuchsia-600 to-purple-800' },
+                { id: 3, category_id: 3, judul: 'Strategi Membangun Startup Digital', penulis: 'Dr. Hendra Wijaya', penerbit: 'Gramedia Bisnis', tahun_terbit: 2026, harga: 175000, stok: 10, deskripsi: 'Langkah taktis memvalidasi ide bisnis, mengelola pendanaan, dan menskalakan produk teknologi di pasar Asia Tenggara.', warna: 'from-rose-500 to-pink-700' },
+                { id: 4, category_id: 1, judul: 'Algoritma & Struktur Data Praktis', penulis: 'Bambang Hariyanto', penerbit: 'Andi Publisher', tahun_terbit: 2024, harga: 130000, stok: 18, deskripsi: 'Penjelasan mendalam mengenai kompleksitas waktu, graf, pohon biner, dan optimasi query database.', warna: 'from-pink-500 to-fuchsia-800' },
+                { id: 5, category_id: 4, judul: 'Kecerdasan Buatan & Masa Depan Manusia', penulis: 'Prof. Suryadi', penerbit: 'Sains Press', tahun_terbit: 2026, harga: 160000, stok: 12, deskripsi: 'Mengupas tuntas cara kerja Large Language Models, etika AI, serta dampaknya terhadap peradaban modern.', warna: 'from-rose-600 to-red-800' }
+            ],
+            carts: [],
+            messages: [
+                { id: 1, nama_pengirim: 'Aprilia', email_pengirim: 'Aprilia@gmail.com', subjek: 'Permintaan Stok Buku', pesan: 'Halo Admin, apakah buku tentang Laravel 11 akan segera tersedia minggu depan?', created_at: '2026-11-16 09:20:00' }
+            ]
+        };
+
+        const sqlSchemaText = `-- ============================================================================
+-- SKEMA DATABASE MYSQL: db_bookstore
+-- ============================================================================
+
+CREATE DATABASE IF NOT EXISTS db_bookstore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE db_bookstore;
+
+-- 1. TABEL USERS (Admin & User)
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nama_lengkap VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'user') DEFAULT 'user',
+    alamat TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- 2. TABEL KATEGORI BUKU
+CREATE TABLE IF NOT EXISTS categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nama_kategori VARCHAR(100) NOT NULL,
+    deskripsi TEXT
+) ENGINE=InnoDB;
+
+-- 3. TABEL DATA BUKU
+CREATE TABLE IF NOT EXISTS books (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category_id INT NOT NULL,
+    judul VARCHAR(200) NOT NULL,
+    penulis VARCHAR(100) NOT NULL,
+    penerbit VARCHAR(100),
+    tahun_terbit YEAR,
+    harga INT NOT NULL,
+    stok INT DEFAULT 0,
+    deskripsi TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 4. TABEL KERANJANG BELANJA (CARTS)
+CREATE TABLE IF NOT EXISTS carts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    book_id INT NOT NULL,
+    quantity INT DEFAULT 1,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 5. TABEL PESAN (CONTACT TO ADMIN)
+CREATE TABLE IF NOT EXISTS messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    nama_pengirim VARCHAR(100) NOT NULL,
+    email_pengirim VARCHAR(100) NOT NULL,
+    subjek VARCHAR(150) NOT NULL,
+    pesan TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- INSERT DATA AWAL
+INSERT INTO users (nama_lengkap, email, password, role, alamat) VALUES
+('Administrator Utama', 'admin@bookstore.id', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 'Jl. Jend. Sudirman No. 1, Palu'),
+('Budi Santoso', 'budi@gmail.com', '\$2y\$10\$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'Jl. Ahmad Yani No. 45, Palu');
+
+INSERT INTO categories (nama_kategori, deskripsi) VALUES
+('Pemrograman & IT', 'Buku pengembangan perangkat lunak, web, dan jaringan'),
+('Fiksi & Sastra', 'Novel, cerpen, dan karya sastra populer'),
+('Bisnis & Ekonomi', 'Manajemen keuangan, kewirausahaan, dan investasi');
+
+INSERT INTO books (category_id, judul, penulis, penerbit, tahun_terbit, harga, stok, deskripsi) VALUES
+(1, 'Mastering PHP 8 & MySQL Modern', 'Andi Pratama', 'Informatika Nusantara', 2025, 145000, 24, 'Panduan lengkap membangun aplikasi web dinamis dari nol hingga mahir dengan PDO.');`;
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function formatRupiah(num) {
+            return 'Rp ' + Number(num).toLocaleString('id-ID');
+        }
+
+        function showToast(msg, type = 'success') {
+            const c = document.getElementById('toastContainer');
+            c.innerHTML = `
+                <div class="p-4 rounded-2xl text-sm font-bold shadow-lg flex items-center justify-between ${type === 'success' ? 'bg-pink-600 text-white' : 'bg-rose-900 text-pink-100'}">
+                    <span><i class="fa-solid fa-circle-check mr-2"></i>${escapeHtml(msg)}</span>
+                    <button onclick="this.parentElement.remove()" class="ml-4 opacity-75 hover:opacity-100">&times;</button>
+                </div>
+            `;
+            c.classList.remove('hidden');
+            setTimeout(() => { c.classList.add('hidden'); }, 3500);
+        }
+
+        function navigate(page) {
+            state.currentPage = page;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            renderApp();
+        }
+
+        function quickLogin(email) {
+            if (email === 'admin@bookstore.id') {
+                state.currentUser = { id: 1, nama_lengkap: 'Administrator Utama', email: 'admin@bookstore.id', role: 'admin', alamat: 'Kotamobagu' };
+                showToast("Berhasil masuk sebagai Admin!");
+            } else {
+                state.currentUser = { id: 2, nama_lengkap: 'Aprilia Putri', email: 'Aprilia@gmail.com', role: 'user', alamat: 'Palu' };
+                showToast("Berhasil masuk sebagai User (Aprilia)!");
+            }
+            renderApp();
+        }
+
+        function logout() {
+            state.currentUser = null;
+            showToast("Anda telah keluar dari sistem.");
+            navigate('home');
+        }
+
+        function handleSearch(e) {
+            e.preventDefault();
+            state.searchQuery = document.getElementById('searchInput').value;
+            state.filterCategory = document.getElementById('catSelect').value;
+            navigate('home');
+        }
+
+        function setFilterCat(catId) {
+            state.filterCategory = catId;
+            navigate('home');
+        }
+
+        function resetFilters() {
+            state.searchQuery = '';
+            state.filterCategory = '';
+            navigate('home');
+        }
+
+        function addToCart(bookId) {
+            if (!state.currentUser) {
+                showToast("Silakan login terlebih dahulu untuk belanja.", "error");
+                navigate('login');
+                return;
+            }
+            const existing = state.carts.find(c => c.user_id === state.currentUser.id && c.book_id === bookId);
+            if (existing) {
+                existing.quantity += 1;
+            } else {
+                state.carts.push({ user_id: state.currentUser.id, book_id: bookId, quantity: 1 });
+            }
+            showToast("Buku berhasil ditambahkan ke keranjang!");
+            renderApp();
+        }
+
+        function removeFromCart(bookId) {
+            state.carts = state.carts.filter(c => !(c.user_id === state.currentUser.id && c.book_id === bookId));
+            showToast("Item dihapus dari keranjang.");
+            renderApp();
+        }
+
+        function checkoutCart() {
+            showToast("Checkout berhasil! Pesanan Anda sedang diproses.");
+            state.carts = state.carts.filter(c => c.user_id !== state.currentUser.id);
+            navigate('home');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const u = state.users.find(x => x.email === email);
+            if (u) {
+                state.currentUser = u;
+                showToast("Login berhasil! Selamat datang, " + u.nama_lengkap);
+                navigate('home');
+            } else {
+                showToast("Email tidak ditemukan. Coba gunakan akun demo.", "error");
+            }
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const nama = document.getElementById('regNama').value;
+            const email = document.getElementById('regEmail').value;
+            const alamat = document.getElementById('regAlamat').value;
+            const newId = state.users.length + 1;
+            state.users.push({ id: newId, nama_lengkap: nama, email: email, role: 'user', alamat: alamat, created_at: '2026-11-17' });
+            showToast("Registrasi berhasil! Silakan login.");
+            navigate('login');
+        }
+
+        function handleSendMessage(e) {
+            e.preventDefault();
+            const nama = document.getElementById('msgNama').value;
+            const email = document.getElementById('msgEmail').value;
+            const subjek = document.getElementById('msgSubjek').value;
+            const pesan = document.getElementById('msgPesan').value;
+            state.messages.push({ id: state.messages.length + 1, nama_pengirim: nama, email_pengirim: email, subjek: subjek, pesan: pesan, created_at: 'Baru saja' });
+            showToast("Pesan berhasil dikirim ke Admin!");
+            navigate('home');
+        }
+
+        function startEditBook(id) {
+            state.editingBookId = id;
+            navigate('admin_books');
+        }
+
+        function cancelEditBook() {
+            state.editingBookId = null;
+            navigate('admin_books');
+        }
+
+        function handleSaveBook(e) {
+            e.preventDefault();
+            const judul = document.getElementById('bookJudul').value;
+            const category_id = parseInt(document.getElementById('bookCatId').value);
+            const penulis = document.getElementById('bookPenulis').value;
+            const penerbit = document.getElementById('bookPenerbit').value;
+            const tahun_terbit = parseInt(document.getElementById('bookTahun').value);
+            const harga = parseInt(document.getElementById('bookHarga').value);
+            const stok = parseInt(document.getElementById('bookStok').value);
+            const deskripsi = document.getElementById('bookDeskripsi').value;
+
+            if (state.editingBookId) {
+                const b = state.books.find(x => x.id === state.editingBookId);
+                if (b) {
+                    b.judul = judul;
+                    b.category_id = category_id;
+                    b.penulis = penulis;
+                    b.penerbit = penerbit;
+                    b.tahun_terbit = tahun_terbit;
+                    b.harga = harga;
+                    b.stok = stok;
+                    b.deskripsi = deskripsi;
+                }
+                state.editingBookId = null;
+                showToast("Data buku berhasil diperbarui!");
+            } else {
+                const newId = state.books.length > 0 ? Math.max(...state.books.map(x => x.id)) + 1 : 1;
+                state.books.push({ id: newId, category_id, judul, penulis, penerbit, tahun_terbit, harga, stok, deskripsi, warna: 'from-pink-600 to-rose-800' });
+                showToast("Buku baru berhasil ditambahkan!");
+            }
+            navigate('admin_books');
+        }
+
+        function deleteBook(id) {
+            if (confirm("Yakin ingin menghapus buku ini?")) {
+                state.books = state.books.filter(x => x.id !== id);
+                showToast("Buku berhasil dihapus.");
+                navigate('admin_books');
+            }
+        }
+
+        function startEditCat(id) {
+            state.editingCategoryId = id;
+            navigate('admin_categories');
+        }
+
+        function cancelEditCat() {
+            state.editingCategoryId = null;
+            navigate('admin_categories');
+        }
+
+        function handleSaveCategory(e) {
+            e.preventDefault();
+            const nama_kategori = document.getElementById('catNama').value;
+            const deskripsi = document.getElementById('catDeskripsi').value;
+
+            if (state.editingCategoryId) {
+                const c = state.categories.find(x => x.id === state.editingCategoryId);
+                if (c) {
+                    c.nama_kategori = nama_kategori;
+                    c.deskripsi = deskripsi;
+                }
+                state.editingCategoryId = null;
+                showToast("Kategori berhasil diperbarui!");
+            } else {
+                const newId = state.categories.length > 0 ? Math.max(...state.categories.map(x => x.id)) + 1 : 1;
+                state.categories.push({ id: newId, nama_kategori, deskripsi });
+                showToast("Kategori baru berhasil ditambahkan!");
+            }
+            navigate('admin_categories');
+        }
+
+        function deleteCat(id) {
+            if (confirm("Yakin ingin menghapus kategori ini?")) {
+                state.categories = state.categories.filter(x => x.id !== id);
+                showToast("Kategori berhasil dihapus.");
+                navigate('admin_categories');
+            }
+        }
+
+        function copySQL() {
+            const area = document.getElementById('sqlCodeArea');
+            area.select();
+            document.execCommand('copy');
+            showToast("Query SQL berhasil disalin ke clipboard!");
+        }
+
+        function renderNavbar() {
+            const p = state.currentPage;
+            const u = state.currentUser;
+            const userCartCount = u ? state.carts.filter(c => c.user_id === u.id).reduce((sum, item) => sum + item.quantity, 0) : 0;
+
+            const navBtn = (id, icon, label, extraClass = '') => `
+                <button onclick="navigate('${id}')" class="px-3.5 py-2 rounded-lg text-sm font-semibold transition cursor-pointer ${p === id ? 'bg-pink-50 text-pink-700' : 'text-slate-600 hover:bg-pink-50/60'} ${extraClass}">
+                    <i class="fa-solid ${icon} mr-1.5"></i>${label}
+                </button>
+            `;
+
+            document.getElementById('desktopNav').innerHTML = `
+                ${navBtn('home', 'fa-store', 'Katalog Buku')}
+                ${navBtn('about', 'fa-circle-info', 'About Us')}
+                ${navBtn('contact', 'fa-envelope', 'Contact Admin')}
+                <button onclick="navigate('sql_schema')" class="px-3.5 py-2 rounded-lg text-sm font-semibold transition cursor-pointer ${p === 'sql_schema' ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'text-rose-700 bg-rose-50/70 hover:bg-rose-100'}">
+                    <i class="fa-solid fa-database mr-1.5"></i>Skema Database SQL
+                </button>
+            `;
+
+            document.getElementById('mobileNav').innerHTML = `
+                <button onclick="navigate('home')" class="px-3 py-1.5 rounded-lg whitespace-nowrap ${p === 'home' ? 'bg-pink-600 text-white' : 'bg-pink-50 text-slate-600'}">Katalog</button>
+                <button onclick="navigate('about')" class="px-3 py-1.5 rounded-lg whitespace-nowrap ${p === 'about' ? 'bg-pink-600 text-white' : 'bg-pink-50 text-slate-600'}">About Us</button>
+                <button onclick="navigate('contact')" class="px-3 py-1.5 rounded-lg whitespace-nowrap ${p === 'contact' ? 'bg-pink-600 text-white' : 'bg-pink-50 text-slate-600'}">Contact Admin</button>
+                <button onclick="navigate('sql_schema')" class="px-3 py-1.5 rounded-lg whitespace-nowrap bg-rose-100 text-rose-800">Skema SQL</button>
+            `;
+
+            let rightHtml = `
+                <button onclick="navigate('cart')" class="relative p-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 text-pink-700 transition cursor-pointer" title="Keranjang Belanja">
+                    <i class="fa-solid fa-cart-shopping text-base"></i>
+                    ${userCartCount > 0 ? `<span class="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow">${userCartCount}</span>` : ''}
+                </button>
+            `;
+
+            if (u) {
+                if (u.role === 'admin') {
+                    rightHtml += `
+                        <button onclick="navigate('admin_books')" class="px-3.5 py-2 rounded-xl bg-rose-950 hover:bg-rose-900 text-white text-sm font-semibold flex items-center gap-2 shadow-sm transition cursor-pointer">
+                            <i class="fa-solid fa-shield-halved text-pink-400"></i>
+                            <span class="hidden sm:inline">Panel Admin</span>
+                        </button>
+                    `;
+                }
+                rightHtml += `
+                    <div class="flex items-center gap-2 pl-2 border-l border-pink-100">
+                        <div class="text-right hidden sm:block">
+                            <div class="text-xs font-bold text-slate-900">${escapeHtml(u.nama_lengkap)}</div>
+                            <div class="text-[10px] font-semibold uppercase tracking-wider ${u.role === 'admin' ? 'text-amber-600' : 'text-pink-600'}">${u.role}</div>
+                        </div>
+                        <button onclick="logout()" class="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer" title="Logout">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                `;
+            } else {
+                rightHtml += `
+                    <button onclick="navigate('login')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-pink-50 transition cursor-pointer">Masuk</button>
+                    <button onclick="navigate('register')" class="px-4 py-2 rounded-xl text-sm font-semibold bg-pink-600 hover:bg-pink-700 text-white shadow-sm shadow-pink-200 transition cursor-pointer">Daftar</button>
+                `;
+            }
+
+            document.getElementById('rightNav').innerHTML = rightHtml;
+        }
+
+        function renderAdminHeader() {
+            const p = state.currentPage;
+            return `
+                <div class="bg-gradient-to-r from-rose-950 via-pink-950 to-rose-900 text-white rounded-3xl p-6 sm:p-8 mb-8 shadow-lg">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-widest text-pink-300">Dashboard Kontrol</span>
+                            <h1 class="text-2xl sm:text-3xl font-extrabold mt-1">Administrator BookStore</h1>
+                            <p class="text-pink-200/80 text-sm mt-1">Kelola master data kategori, inventaris buku, serta pantau pengguna terdaftar.</p>
+                        </div>
+                        <div class="flex gap-3 text-center">
+                            <div class="bg-rose-900/70 px-4 py-3 rounded-2xl border border-pink-800/60">
+                                <div class="text-2xl font-extrabold text-white">${state.books.length}</div>
+                                <div class="text-xs text-pink-200">Total Buku</div>
+                            </div>
+                            <div class="bg-rose-900/70 px-4 py-3 rounded-2xl border border-pink-800/60">
+                                <div class="text-2xl font-extrabold text-pink-300">${state.categories.length}</div>
+                                <div class="text-xs text-pink-200">Kategori</div>
+                            </div>
+                            <div class="bg-rose-900/70 px-4 py-3 rounded-2xl border border-pink-800/60">
+                                <div class="text-2xl font-extrabold text-emerald-300">${state.users.length}</div>
+                                <div class="text-xs text-pink-200">User</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 pt-4 border-t border-pink-900/80">
+                        <button onclick="navigate('admin_books')" class="px-4 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 cursor-pointer ${p === 'admin_books' ? 'bg-pink-600 text-white shadow-sm' : 'bg-rose-900/60 text-pink-200 hover:bg-rose-800'}">
+                            <i class="fa-solid fa-book"></i> Data Buku (CRUD)
+                        </button>
+                        <button onclick="navigate('admin_categories')" class="px-4 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 cursor-pointer ${p === 'admin_categories' ? 'bg-pink-600 text-white shadow-sm' : 'bg-rose-900/60 text-pink-200 hover:bg-rose-800'}">
+                            <i class="fa-solid fa-tags"></i> Kategori Buku (CRUD)
+                        </button>
+                        <button onclick="navigate('admin_users')" class="px-4 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 cursor-pointer ${p === 'admin_users' ? 'bg-pink-600 text-white shadow-sm' : 'bg-rose-900/60 text-pink-200 hover:bg-rose-800'}">
+                            <i class="fa-solid fa-users"></i> List User Terdaftar
+                        </button>
+                        <button onclick="navigate('admin_messages')" class="px-4 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 cursor-pointer ${p === 'admin_messages' ? 'bg-pink-600 text-white shadow-sm' : 'bg-rose-900/60 text-pink-200 hover:bg-rose-800'}">
+                            <i class="fa-solid fa-inbox"></i> Pesan Masuk (${state.messages.length})
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderApp() {
+            renderNavbar();
+            const root = document.getElementById('appRoot');
+            const p = state.currentPage;
+
+            if (p.startsWith('admin_') && state.currentUser?.role !== 'admin') {
+                root.innerHTML = `
+                    <div class="bg-white rounded-3xl p-10 text-center border border-pink-100 shadow-sm max-w-lg mx-auto">
+                        <div class="w-16 h-16 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4 text-2xl">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-900 mb-2">Akses Ditolak</h2>
+                        <p class="text-slate-500 text-sm mb-6">Halaman ini khusus untuk aktor <strong>Admin</strong>.</p>
+                        <button onclick="quickLogin('admin@bookstore.id')" class="px-6 py-2.5 rounded-xl bg-pink-600 text-white font-semibold text-sm hover:bg-pink-700 transition cursor-pointer">Masuk Sebagai Admin</button>
+                    </div>
+                `;
+                return;
+            }
+
+            if (p === 'home') root.innerHTML = renderHome();
+            else if (p === 'cart') root.innerHTML = renderCart();
+            else if (p === 'about') root.innerHTML = renderAbout();
+            else if (p === 'contact') root.innerHTML = renderContact();
+            else if (p === 'login') root.innerHTML = renderLogin();
+            else if (p === 'register') root.innerHTML = renderRegister();
+            else if (p === 'admin_books') root.innerHTML = renderAdminBooks();
+            else if (p === 'admin_categories') root.innerHTML = renderAdminCategories();
+            else if (p === 'admin_users') root.innerHTML = renderAdminUsers();
+            else if (p === 'admin_messages') root.innerHTML = renderAdminMessages();
+            else if (p === 'sql_schema') root.innerHTML = renderSqlSchema();
+        }
+
+        function renderHome() {
+            const filteredBooks = state.books.filter(b => {
+                const matchSearch = state.searchQuery === '' ||
+                    (b.judul + ' ' + b.penulis + ' ' + b.penerbit).toLowerCase().includes(state.searchQuery.toLowerCase());
+                const matchCat = state.filterCategory === '' || b.category_id == state.filterCategory;
+                return matchSearch && matchCat;
+            });
+
+            return `
+                <div class="bg-gradient-to-br from-pink-600 via-rose-600 to-fuchsia-800 rounded-3xl p-8 sm:p-12 text-white mb-10 shadow-xl shadow-pink-200/60 relative overflow-hidden">
+                    <div class="relative z-10 max-w-2xl">
+                        <span class="inline-block px-3 py-1 rounded-full bg-white/20 text-pink-50 text-xs font-semibold mb-4 backdrop-blur-sm">
+                            Koleksi Terlengkap & Terpercaya
+                        </span>
+                        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-4">
+                            Temukan Jendela Dunia di Setiap Halaman.
+                        </h1>
+                        <p class="text-pink-100 text-sm sm:text-base mb-8 leading-relaxed">
+                            Jelajahi ratusan buku pilihan dari berbagai kategori. Cari judul favorit Anda dan masukkan langsung ke keranjang belanja.
+                        </p>
+
+                        <form onsubmit="handleSearch(event)" class="bg-white p-2 rounded-2xl shadow-lg flex flex-col sm:flex-row gap-2">
+                            <div class="flex-1 flex items-center px-3">
+                                <i class="fa-solid fa-magnifying-glass text-pink-400 mr-2.5"></i>
+                                <input type="text" id="searchInput" value="${escapeHtml(state.searchQuery)}" placeholder="Cari judul buku, penulis, atau penerbit..." class="w-full py-2 text-slate-800 text-sm focus:outline-none">
+                            </div>
+                            <select id="catSelect" class="px-3 py-2.5 rounded-xl bg-pink-50 text-slate-700 text-sm font-medium focus:outline-none">
+                                <option value="">Semua Kategori</option>
+                                ${state.categories.map(c => `<option value="${c.id}" ${state.filterCategory == c.id ? 'selected' : ''}>${escapeHtml(c.nama_kategori)}</option>`).join('')}
+                            </select>
+                            <button type="submit" class="px-6 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-semibold text-sm transition shadow-sm cursor-pointer">
+                                Cari Buku
+                            </button>
+                        </form>
+                    </div>
+                    <i class="fa-solid fa-book-bookmark absolute -bottom-8 -right-8 text-[220px] text-white/10 rotate-12 pointer-events-none"></i>
+                </div>
+
+                <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
+                    <div class="flex items-center gap-2 overflow-x-auto pb-1">
+                        <button onclick="setFilterCat('')" class="px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${state.filterCategory === '' ? 'bg-rose-950 text-white' : 'bg-white text-slate-600 border border-pink-100 hover:bg-pink-50'}">
+                            Semua
+                        </button>
+                        ${state.categories.map(c => `
+                            <button onclick="setFilterCat('${c.id}')" class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${state.filterCategory == c.id ? 'bg-pink-600 text-white' : 'bg-white text-slate-600 border border-pink-100 hover:bg-pink-50'}">
+                                ${escapeHtml(c.nama_kategori)}
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div class="text-sm text-slate-500">
+                        Menampilkan <strong class="text-slate-900">${filteredBooks.length}</strong> buku
+                    </div>
+                </div>
+
+                ${filteredBooks.length === 0 ? `
+                    <div class="bg-white rounded-3xl p-12 text-center border border-pink-100">
+                        <i class="fa-solid fa-book-open-reader text-5xl text-pink-200 mb-4"></i>
+                        <h3 class="text-lg font-bold text-slate-800">Buku tidak ditemukan</h3>
+                        <p class="text-slate-500 text-sm mt-1">Coba gunakan kata kunci pencarian lain atau atur ulang filter kategori.</p>
+                        <button onclick="resetFilters()" class="mt-4 px-5 py-2 rounded-xl bg-pink-50 text-pink-700 text-sm font-semibold cursor-pointer">Reset Pencarian</button>
+                    </div>
+                ` : `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${filteredBooks.map(book => {
+                            const catName = state.categories.find(c => c.id == book.category_id)?.nama_kategori || 'Umum';
+                            return `
+                                <div class="bg-white rounded-3xl border border-pink-100 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-pink-100/60 transition duration-300 flex flex-col">
+                                    <div class="p-6 bg-pink-50/60 flex justify-center items-center relative">
+                                        <span class="absolute top-4 left-4 px-3 py-1 rounded-full bg-white/95 backdrop-blur text-[11px] font-bold text-pink-700 shadow-sm">
+                                            ${escapeHtml(catName)}
+                                        </span>
+                                        <span class="absolute top-4 right-4 px-2.5 py-1 rounded-lg text-[11px] font-bold ${book.stok > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                                            Stok: ${book.stok}
+                                        </span>
+
+                                        <div class="w-36 h-48 rounded-r-xl rounded-l-sm bg-gradient-to-br ${book.warna} text-white p-4 flex flex-col justify-between book-spine">
+                                            <div class="text-[10px] uppercase tracking-wider opacity-75 font-semibold">${escapeHtml(book.penerbit)}</div>
+                                            <div class="font-bold text-sm leading-snug line-clamp-3">${escapeHtml(book.judul)}</div>
+                                            <div class="text-[11px] opacity-90 border-t border-white/20 pt-2 truncate">${escapeHtml(book.penulis)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-6 flex-1 flex flex-col justify-between">
+                                        <div>
+                                            <div class="text-xs text-slate-400 font-medium mb-1">
+                                                ${escapeHtml(book.penulis)} • ${book.tahun_terbit}
+                                            </div>
+                                            <h3 class="font-bold text-lg text-slate-900 leading-snug mb-2">
+                                                ${escapeHtml(book.judul)}
+                                            </h3>
+                                            <p class="text-slate-500 text-xs leading-relaxed line-clamp-2 mb-4">
+                                                ${escapeHtml(book.deskripsi)}
+                                            </p>
+                                        </div>
+
+                                        <div class="pt-4 border-t border-pink-50 flex items-center justify-between gap-3">
+                                            <div>
+                                                <span class="text-[11px] text-slate-400 block">Harga</span>
+                                                <span class="text-lg font-extrabold text-pink-600">${formatRupiah(book.harga)}</span>
+                                            </div>
+
+                                            ${book.stok > 0 ? `
+                                                <button onclick="addToCart(${book.id})" class="px-4 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold flex items-center gap-2 shadow-sm shadow-pink-200 transition cursor-pointer">
+                                                    <i class="fa-solid fa-cart-plus"></i> Add to Cart
+                                                </button>
+                                            ` : `
+                                                <button disabled class="px-4 py-2.5 rounded-xl bg-slate-200 text-slate-500 text-xs font-bold cursor-not-allowed">
+                                                    Stok Habis
+                                                </button>
+                                            `}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `}
+            `;
+        }
+
+        function renderCart() {
+            const u = state.currentUser;
+            if (!u) {
+                return `
+                    <div class="max-w-lg mx-auto bg-white rounded-3xl p-10 text-center border border-pink-100">
+                        <i class="fa-solid fa-user-lock text-4xl text-pink-600 mb-4"></i>
+                        <h2 class="text-xl font-bold text-slate-900 mb-2">Login Diperlukan</h2>
+                        <p class="text-slate-600 text-sm mb-6">Silakan masuk terlebih dahulu untuk melihat dan mengelola keranjang belanja Anda.</p>
+                        <button onclick="navigate('login')" class="px-6 py-2.5 rounded-xl bg-pink-600 text-white font-semibold text-sm cursor-pointer">Masuk Sekarang</button>
+                    </div>
+                `;
+            }
+
+            const userCarts = state.carts.filter(c => c.user_id === u.id);
+            if (userCarts.length === 0) {
+                return `
+                    <div class="max-w-lg mx-auto bg-white rounded-3xl p-12 text-center border border-pink-100">
+                        <i class="fa-solid fa-basket-shopping text-5xl text-pink-200 mb-4"></i>
+                        <h3 class="text-lg font-bold text-slate-800">Keranjang masih kosong</h3>
+                        <p class="text-slate-500 text-sm mt-1 mb-6">Yuk jelajahi katalog buku kami dan temukan bacaan menarik!</p>
+                        <button onclick="navigate('home')" class="px-6 py-2.5 rounded-xl bg-pink-600 text-white font-semibold text-sm cursor-pointer">Lihat Katalog Buku</button>
+                    </div>
+                `;
+            }
+
+            let grandTotal = 0;
+            const rowsHtml = userCarts.map(item => {
+                const book = state.books.find(b => b.id === item.book_id);
+                if (!book) return '';
+                const subtotal = book.harga * item.quantity;
+                grandTotal += subtotal;
+                return `
+                    <div class="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="font-bold text-slate-900">${escapeHtml(book.judul)}</h3>
+                            <p class="text-xs text-slate-500">Penulis: ${escapeHtml(book.penulis)}</p>
+                            <div class="text-sm font-semibold text-pink-600 mt-1">
+                                ${formatRupiah(book.harga)} x ${item.quantity} buku
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between sm:justify-end gap-6">
+                            <div class="text-right">
+                                <span class="text-xs text-slate-400 block">Subtotal</span>
+                                <span class="font-extrabold text-slate-900">${formatRupiah(subtotal)}</span>
+                            </div>
+                            <button onclick="removeFromCart(${book.id})" class="p-2.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition cursor-pointer" title="Hapus">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="max-w-4xl mx-auto">
+                    <h1 class="text-2xl font-extrabold text-slate-900 mb-6 flex items-center gap-3">
+                        <i class="fa-solid fa-cart-shopping text-pink-600"></i> Keranjang Belanja Anda
+                    </h1>
+                    <div class="bg-white rounded-3xl border border-pink-100 overflow-hidden shadow-sm">
+                        <div class="divide-y divide-pink-50">${rowsHtml}</div>
+                        <div class="bg-pink-50/50 p-6 border-t border-pink-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div>
+                                <span class="text-xs text-slate-500 block">Total Pembayaran</span>
+                                <span class="text-2xl font-extrabold text-pink-700">${formatRupiah(grandTotal)}</span>
+                            </div>
+                            <button onclick="checkoutCart()" class="px-8 py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-sm shadow-md shadow-pink-200 transition flex items-center gap-2 cursor-pointer">
+                                <i class="fa-solid fa-bag-shopping"></i> Checkout Sekarang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAbout() {
+            return `
+                <div class="bg-white rounded-3xl border border-pink-100 p-8 sm:p-12 shadow-sm">
+                    <div class="max-w-3xl mx-auto">
+                        <span class="px-3 py-1 rounded-full bg-pink-50 text-pink-700 text-xs font-bold">Tentang Kami</span>
+                        <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-6">Membangun Budaya Literasi Digital Indonesia</h1>
+                        <p class="text-slate-600 leading-relaxed mb-6">
+                            <strong>Toko Buku Caa BookStore</strong> adalah platform toko buku modern yang dirancang untuk memudahkan pembaca menemukan berbagai literatur berkualitas—mulai dari buku pemrograman, teknologi, bisnis, hingga karya sastra pilihan.
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 my-8">
+                            <div class="p-5 rounded-2xl bg-pink-50/50 border border-pink-100">
+                                <i class="fa-solid fa-award text-2xl text-pink-600 mb-3"></i>
+                                <h3 class="font-bold text-slate-900 mb-1">100% Buku Original</h3>
+                                <p class="text-xs text-slate-500">Bekerja sama langsung dengan penerbit resmi nasional maupun internasional.</p>
+                            </div>
+                            <div class="p-5 rounded-2xl bg-pink-50/50 border border-pink-100">
+                                <i class="fa-solid fa-truck-fast text-2xl text-rose-600 mb-3"></i>
+                                <h3 class="font-bold text-slate-900 mb-1">Pengiriman Cepat</h3>
+                                <p class="text-xs text-slate-500">Pengemasan aman dan pengiriman ke seluruh pelosok Nusantara.</p>
+                            </div>
+                            <div class="p-5 rounded-2xl bg-pink-50/50 border border-pink-100">
+                                <i class="fa-solid fa-headset text-2xl text-fuchsia-600 mb-3"></i>
+                                <h3 class="font-bold text-slate-900 mb-1">Layanan Responsif</h3>
+                                <p class="text-xs text-slate-500">Hubungi admin kapan saja untuk permintaan judul buku tertentu.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderContact() {
+            const u = state.currentUser;
+            return `
+                <div class="max-w-2xl mx-auto bg-white rounded-3xl border border-pink-100 p-8 shadow-sm">
+                    <div class="mb-6">
+                        <span class="px-3 py-1 rounded-full bg-pink-50 text-pink-700 text-xs font-bold">Layanan Pelanggan</span>
+                        <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Contact to Admin</h1>
+                        <p class="text-sm text-slate-500 mt-1">Punya pertanyaan seputar ketersediaan buku atau pesanan? Kirim pesan langsung ke administrator kami.</p>
+                    </div>
+
+                    <form onsubmit="handleSendMessage(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1.5">Nama Lengkap</label>
+                                <input type="text" id="msgNama" required value="${escapeHtml(u?.nama_lengkap || '')}" class="w-full px-4 py-2.5 rounded-xl border border-pink-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1.5">Alamat Email</label>
+                                <input type="email" id="msgEmail" required value="${escapeHtml(u?.email || '')}" class="w-full px-4 py-2.5 rounded-xl border border-pink-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Subjek Pesan</label>
+                            <input type="text" id="msgSubjek" required placeholder="Contoh: Permintaan Buku Pemrograman PHP" class="w-full px-4 py-2.5 rounded-xl border border-pink-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Isi Pesan</label>
+                            <textarea id="msgPesan" rows="4" required placeholder="Tuliskan detail pertanyaan atau pesan Anda untuk Admin..." class="w-full px-4 py-2.5 rounded-xl border border-pink-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none"></textarea>
+                        </div>
+                        <button type="submit" class="w-full py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-sm shadow-md shadow-pink-200 transition cursor-pointer">
+                            <i class="fa-solid fa-paper-plane mr-2"></i> Kirim Pesan ke Admin
+                        </button>
+                    </form>
+                </div>
+            `;
+        }
+
+        function renderLogin() {
+            return `
+                <div class="max-w-md mx-auto bg-white rounded-3xl border border-pink-100 p-8 shadow-sm">
+                    <div class="text-center mb-6">
+                        <div class="w-12 h-12 rounded-2xl bg-pink-600 text-white flex items-center justify-center mx-auto mb-3 text-xl shadow-md shadow-pink-200">
+                            <i class="fa-solid fa-right-to-bracket"></i>
+                        </div>
+                        <h1 class="text-2xl font-extrabold text-slate-900">Masuk ke Akun</h1>
+                        <p class="text-xs text-slate-500 mt-1">Gunakan akun User atau Admin untuk mengakses fitur lengkap</p>
+                    </div>
+
+                    <form onsubmit="handleLogin(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Email</label>
+                            <input type="email" id="loginEmail" required placeholder="admin@bookstore.id / Aprilia@gmail.com" class="w-full px-4 py-2.5 rounded-xl border border-pink-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Password</label>
+                            <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl border border-pink-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none">
+                        </div>
+                        <button type="submit" class="w-full py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-sm transition cursor-pointer">
+                            Login
+                        </button>
+                    </form>
+
+                    <div class="mt-4 p-3 rounded-xl bg-pink-50/70 border border-pink-100 text-[11px] text-slate-600 space-y-1">
+                        <div><strong>Akun Admin:</strong> admin@bookstore.id / admin123</div>
+                        <div><strong>Akun User:</strong> Aprilia@gmail.com / user123</div>
+                    </div>
+
+                    <div class="mt-5 pt-4 border-t border-pink-50 text-center text-xs text-slate-500">
+                        Belum punya akun pembeli? <button onclick="navigate('register')" class="text-pink-600 font-bold hover:underline cursor-pointer">Daftar di sini</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderRegister() {
+            return `
+                <div class="max-w-md mx-auto bg-white rounded-3xl border border-pink-100 p-8 shadow-sm">
+                    <div class="text-center mb-6">
+                        <div class="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center mx-auto mb-3 text-xl shadow-md shadow-rose-200">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </div>
+                        <h1 class="text-2xl font-extrabold text-slate-900">Registrasi User Baru</h1>
+                        <p class="text-xs text-slate-500 mt-1">Buat akun untuk mulai berbelanja buku favorit Anda</p>
+                    </div>
+
+                    <form onsubmit="handleRegister(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Nama Lengkap</label>
+                            <input type="text" id="regNama" required placeholder="Nama lengkap Anda" class="w-full px-4 py-2.5 rounded-xl border border-pink-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Alamat Email</label>
+                            <input type="email" id="regEmail" required placeholder="email@contoh.com" class="w-full px-4 py-2.5 rounded-xl border border-pink-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Password</label>
+                            <input type="password" id="regPassword" required placeholder="Minimal 6 karakter" class="w-full px-4 py-2.5 rounded-xl border border-pink-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1.5">Alamat Pengiriman</label>
+                            <textarea id="regAlamat" rows="2" placeholder="Alamat lengkap pengiriman buku..." class="w-full px-4 py-2.5 rounded-xl border border-pink-200 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none"></textarea>
+                        </div>
+                        <button type="submit" class="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm transition cursor-pointer">
+                            Daftar Sekarang
+                        </button>
+                    </form>
+
+                    <div class="mt-6 pt-4 border-t border-pink-50 text-center text-xs text-slate-500">
+                        Sudah punya akun? <button onclick="navigate('login')" class="text-pink-600 font-bold hover:underline cursor-pointer">Masuk di sini</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminBooks() {
+            const editBook = state.editingBookId ? state.books.find(b => b.id === state.editingBookId) : null;
+            return `
+                ${renderAdminHeader()}
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="bg-white rounded-3xl border border-pink-100 p-6 shadow-sm h-fit">
+                        <h2 class="text-lg font-extrabold text-slate-900 mb-4 flex items-center gap-2">
+                            <i class="fa-solid ${editBook ? 'fa-pen-to-square text-amber-500' : 'fa-plus-circle text-pink-600'}"></i>
+                            ${editBook ? 'Edit Data Buku' : 'Tambah Buku Baru'}
+                        </h2>
+                        <form onsubmit="handleSaveBook(event)" class="space-y-3.5">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Judul Buku</label>
+                                <input type="text" id="bookJudul" required value="${escapeHtml(editBook?.judul || '')}" class="w-full px-3.5 py-2 rounded-xl border border-pink-200 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Kategori</label>
+                                <select id="bookCatId" required class="w-full px-3.5 py-2 rounded-xl border border-pink-200 text-sm">
+                                    ${state.categories.map(c => `<option value="${c.id}" ${editBook?.category_id == c.id ? 'selected' : ''}>${escapeHtml(c.nama_kategori)}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Penulis</label>
+                                    <input type="text" id="bookPenulis" required value="${escapeHtml(editBook?.penulis || '')}" class="w-full px-3.5 py-2 rounded-xl border border-pink-200 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Penerbit</label>
+                                    <input type="text" id="bookPenerbit" value="${escapeHtml(editBook?.penerbit || '')}" class="w-full px-3.5 py-2 rounded-xl border border-pink-200 text-sm">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Tahun</label>
+                                    <input type="number" id="bookTahun" value="${editBook?.tahun_terbit || 2026}" class="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Harga (Rp)</label>
+                                    <input type="number" id="bookHarga" required value="${editBook?.harga || ''}" class="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Stok</label>
+                                    <input type="number" id="bookStok" required value="${editBook?.stok ?? 10}" class="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Sinopsis / Deskripsi</label>
+                                <textarea id="bookDeskripsi" rows="3" class="w-full px-3.5 py-2 rounded-xl border border-pink-200 text-sm">${escapeHtml(editBook?.deskripsi || '')}</textarea>
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="submit" class="flex-1 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-sm transition cursor-pointer">
+                                    ${editBook ? 'Update Buku' : 'Simpan Buku'}
+                                </button>
+                                ${editBook ? `<button type="button" onclick="cancelEditBook()" class="px-4 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-semibold text-sm cursor-pointer">Batal</button>` : ''}
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="lg:col-span-2 bg-white rounded-3xl border border-pink-100 overflow-hidden shadow-sm">
+                        <div class="p-6 border-b border-pink-50">
+                            <h2 class="text-lg font-extrabold text-slate-900">Daftar Inventaris Buku</h2>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-pink-50/70 text-slate-600 text-xs uppercase border-b border-pink-100">
+                                        <th class="py-3.5 px-4">Buku & Penulis</th>
+                                        <th class="py-3.5 px-4">Kategori</th>
+                                        <th class="py-3.5 px-4">Harga</th>
+                                        <th class="py-3.5 px-4">Stok</th>
+                                        <th class="py-3.5 px-4 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-pink-50 text-sm">
+                                    ${state.books.map(b => {
+                                        const catName = state.categories.find(c => c.id == b.category_id)?.nama_kategori || 'Umum';
+                                        return `
+                                            <tr class="hover:bg-pink-50/40">
+                                                <td class="py-3.5 px-4">
+                                                    <div class="font-bold text-slate-900">${escapeHtml(b.judul)}</div>
+                                                    <div class="text-xs text-slate-500">${escapeHtml(b.penulis)} (${b.tahun_terbit})</div>
+                                                </td>
+                                                <td class="py-3.5 px-4">
+                                                    <span class="px-2.5 py-1 rounded-lg bg-pink-50 text-pink-700 text-xs font-semibold">${escapeHtml(catName)}</span>
+                                                </td>
+                                                <td class="py-3.5 px-4 font-semibold">${formatRupiah(b.harga)}</td>
+                                                <td class="py-3.5 px-4">
+                                                    <span class="font-bold ${b.stok < 5 ? 'text-rose-600' : 'text-emerald-600'}">${b.stok}</span>
+                                                </td>
+                                                <td class="py-3.5 px-4 text-right whitespace-nowrap">
+                                                    <button onclick="startEditBook(${b.id})" class="p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 mr-1 cursor-pointer" title="Edit">
+                                                        <i class="fa-solid fa-pen"></i>
+                                                    </button>
+                                                    <button onclick="deleteBook(${b.id})" class="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer" title="Hapus">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminCategories() {
+            const editCat = state.editingCategoryId ? state.categories.find(c => c.id === state.editingCategoryId) : null;
+            return `
+                ${renderAdminHeader()}
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="bg-white rounded-3xl border border-pink-100 p-6 shadow-sm h-fit">
+                        <h2 class="text-lg font-extrabold text-slate-900 mb-4">
+                            ${editCat ? 'Update Kategori' : 'Tambah Kategori Buku'}
+                        </h2>
+                        <form onsubmit="handleSaveCategory(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Nama Kategori</label>
+                                <input type="text" id="catNama" required value="${escapeHtml(editCat?.nama_kategori || '')}" placeholder="Contoh: Teknologi Informasi" class="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Deskripsi Singkat</label>
+                                <textarea id="catDeskripsi" rows="3" class="w-full px-3.5 py-2.5 rounded-xl border border-pink-200 text-sm">${escapeHtml(editCat?.deskripsi || '')}</textarea>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="submit" class="flex-1 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-sm cursor-pointer">
+                                    ${editCat ? 'Update Kategori' : 'Simpan Kategori'}
+                                </button>
+                                ${editCat ? `<button type="button" onclick="cancelEditCat()" class="px-4 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-semibold text-sm cursor-pointer">Batal</button>` : ''}
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="lg:col-span-2 bg-white rounded-3xl border border-pink-100 overflow-hidden shadow-sm">
+                        <div class="p-6 border-b border-pink-50">
+                            <h2 class="text-lg font-extrabold text-slate-900">Daftar Kategori Buku</h2>
+                        </div>
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-pink-50/70 text-slate-600 text-xs uppercase border-b border-pink-100">
+                                    <th class="py-3.5 px-6">ID</th>
+                                    <th class="py-3.5 px-6">Nama Kategori</th>
+                                    <th class="py-3.5 px-6">Deskripsi</th>
+                                    <th class="py-3.5 px-6 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-pink-50 text-sm">
+                                ${state.categories.map(c => `
+                                    <tr class="hover:bg-pink-50/40">
+                                        <td class="py-3.5 px-6 font-mono text-xs text-slate-400">#${c.id}</td>
+                                        <td class="py-3.5 px-6 font-bold text-slate-900">${escapeHtml(c.nama_kategori)}</td>
+                                        <td class="py-3.5 px-6 text-slate-500 text-xs">${escapeHtml(c.deskripsi)}</td>
+                                        <td class="py-3.5 px-6 text-right whitespace-nowrap">
+                                            <button onclick="startEditCat(${c.id})" class="p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 mr-1 cursor-pointer">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+                                            <button onclick="deleteCat(${c.id})" class="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 cursor-pointer">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminUsers() {
+            return `
+                ${renderAdminHeader()}
+                <div class="bg-white rounded-3xl border border-pink-100 overflow-hidden shadow-sm">
+                    <div class="p-6 border-b border-pink-50 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-extrabold text-slate-900">Daftar Pengguna (User & Admin) Terdaftar</h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Memantau seluruh akun yang telah melakukan registrasi pada sistem</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full bg-pink-50 text-pink-700 text-xs font-bold">Total: ${state.users.length} Akun</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-pink-50/70 text-slate-600 text-xs uppercase border-b border-pink-100">
+                                    <th class="py-3.5 px-6">ID</th>
+                                    <th class="py-3.5 px-6">Nama Lengkap</th>
+                                    <th class="py-3.5 px-6">Email</th>
+                                    <th class="py-3.5 px-6">Role / Peran</th>
+                                    <th class="py-3.5 px-6">Alamat</th>
+                                    <th class="py-3.5 px-6">Tanggal Daftar</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-pink-50 text-sm">
+                                ${state.users.map(u => `
+                                    <tr class="hover:bg-pink-50/40">
+                                        <td class="py-3.5 px-6 font-mono text-xs text-slate-400">#${u.id}</td>
+                                        <td class="py-3.5 px-6 font-bold text-slate-900">${escapeHtml(u.nama_lengkap)}</td>
+                                        <td class="py-3.5 px-6 text-slate-600">${escapeHtml(u.email)}</td>
+                                        <td class="py-3.5 px-6">
+                                            <span class="px-2.5 py-1 rounded-full text-xs font-bold uppercase ${u.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-pink-100 text-pink-800'}">
+                                                ${u.role}
+                                            </span>
+                                        </td>
+                                        <td class="py-3.5 px-6 text-xs text-slate-500">${escapeHtml(u.alamat || '-')}</td>
+                                        <td class="py-3.5 px-6 text-xs text-slate-400">${escapeHtml(u.created_at)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminMessages() {
+            return `
+                ${renderAdminHeader()}
+                <div class="bg-white rounded-3xl border border-pink-100 overflow-hidden shadow-sm">
+                    <div class="p-6 border-b border-pink-50">
+                        <h2 class="text-lg font-extrabold text-slate-900">Pesan Masuk dari User (Contact to Admin)</h2>
+                    </div>
+                    <div class="divide-y divide-pink-50">
+                        ${state.messages.length === 0 ? `<div class="p-8 text-center text-slate-500 text-sm">Belum ada pesan masuk.</div>` :
+                            state.messages.slice().reverse().map(m => `
+                                <div class="p-6 hover:bg-pink-50/40">
+                                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                        <div>
+                                            <span class="font-bold text-slate-900">${escapeHtml(m.nama_pengirim)}</span>
+                                            <span class="text-xs text-slate-500 ml-2">&lt;${escapeHtml(m.email_pengirim)}&gt;</span>
+                                        </div>
+                                        <span class="text-xs text-slate-400">${escapeHtml(m.created_at)}</span>
+                                    </div>
+                                    <div class="text-xs font-bold text-pink-600 mb-1">Subjek: ${escapeHtml(m.subjek)}</div>
+                                    <p class="text-sm text-slate-700 bg-pink-50/50 p-3.5 rounded-xl border border-pink-100">${escapeHtml(m.pesan)}</p>
+                                </div>
+                            `).join('')
+                        }
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSqlSchema() {
+            return `
+                <div class="bg-white rounded-3xl border border-pink-100 p-6 sm:p-8 shadow-sm">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-pink-50">
+                        <div>
+                            <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-bold">Arsitektur Database Relasional</span>
+                            <h1 class="text-2xl font-extrabold text-slate-900 mt-2">Rancangan Skema SQL (MySQL)</h1>
+                            <p class="text-sm text-slate-500 mt-1">Struktur 5 tabel lengkap dengan Primary Key dan Foreign Key Constraints.</p>
+                        </div>
+                        <button onclick="copySQL()" id="btnCopySql" class="px-5 py-2.5 rounded-xl bg-rose-950 hover:bg-rose-900 text-white text-sm font-semibold flex items-center gap-2 self-start transition cursor-pointer">
+                            <i class="fa-regular fa-copy"></i> Salin Query SQL
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 mb-6 text-xs">
+                        <div class="p-3.5 rounded-2xl bg-pink-50/60 border border-pink-100">
+                            <div class="font-bold text-pink-700 mb-1"><i class="fa-solid fa-table mr-1"></i> users</div>
+                            <div class="text-slate-500">id (PK), nama_lengkap, email, password, role</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-pink-50/60 border border-pink-100">
+                            <div class="font-bold text-pink-700 mb-1"><i class="fa-solid fa-table mr-1"></i> categories</div>
+                            <div class="text-slate-500">id (PK), nama_kategori, deskripsi</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-pink-50/60 border border-pink-100">
+                            <div class="font-bold text-pink-700 mb-1"><i class="fa-solid fa-table mr-1"></i> books</div>
+                            <div class="text-slate-500">id (PK), category_id (FK), judul, penulis, harga, stok</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-pink-50/60 border border-pink-100">
+                            <div class="font-bold text-pink-700 mb-1"><i class="fa-solid fa-table mr-1"></i> carts</div>
+                            <div class="text-slate-500">id (PK), user_id (FK), book_id (FK), quantity</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-pink-50/60 border border-pink-100">
+                            <div class="font-bold text-pink-700 mb-1"><i class="fa-solid fa-table mr-1"></i> messages</div>
+                            <div class="text-slate-500">id (PK), user_id (FK), subjek, pesan</div>
+                        </div>
+                    </div>
+
+                    <textarea id="sqlCodeArea" readonly rows="22" class="w-full p-5 rounded-2xl bg-rose-950 text-pink-200 font-mono text-xs leading-relaxed focus:outline-none">${escapeHtml(sqlSchemaText)}</textarea>
+                </div>
+            `;
+        }
+
+        // Initialize App on load
+        window.onload = function() {
+            renderApp();
+        };
+    </script>
+</body>
+</html>
